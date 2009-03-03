@@ -6,19 +6,18 @@ import java.util.List;
 import com.cogniance.simpledb.dao.SimpleDBDAOSupport.Result;
 import com.cogniance.simpledb.model.SimpleDBEntity;
 
-
 /**
  * @author Andriy Gusyev
  */
 public interface SimpleDBDAO<T extends SimpleDBEntity<ID>, ID extends Serializable> {
-    
+
     /**
      * Returns all entities
      * 
      * @return list of entities
      */
     List<T> getAll();
-    
+
     /**
      * Returns portion of entities from SimpleDB, if count isn't set, returns max 250 entities. If
      * count greater then 250, returns max 250 entitties.
@@ -29,19 +28,34 @@ public interface SimpleDBDAO<T extends SimpleDBEntity<ID>, ID extends Serializab
      * @return {@link Result} which contains list of items and token for next portion.
      */
     Result<T> getPortion(Integer count, String nextToken);
-    
+
+    /**
+     * Returns entity by it's id, if not found returns null.
+     * 
+     * @param id
+     */
     T getById(ID id);
-    
+
     /**
      * Returns number of items in domain
      */
     Integer countRows();
-    
+
     /**
      * Returns number of items with condition
      * 
      * @param conditionQuery - part of the query after WHERE
      */
     Integer countRows(String conditionQuery);
+
+    /**
+     * Saves given entity. If entity exists updates it, ignoring null properties.
+     */
+    void saveOrUpdate(T entity);
+
+    /**
+     * Deletes given entity.
+     */
+    void delete(T entity);
 
 }

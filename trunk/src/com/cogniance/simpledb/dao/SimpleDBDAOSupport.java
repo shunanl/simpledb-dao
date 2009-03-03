@@ -92,7 +92,32 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
             Domain domain = getDomain();
             Item item = domain.getItem(id.toString());
             T obj = (T) SimpleDBObjectBuilder.buildObject(getEntityClass(), item.getAttributes());
-            return obj;
+            if (obj.getId() == null) {
+                return null;
+            } else {
+                return obj;
+            }    
+        } catch (SDBException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+    
+    public void saveOrUpdate(T entity) {
+        try {
+            Domain domain = getDomain();
+            Item item = domain.getItem(entity.getId().toString());
+            List<ItemAttribute> attrs = SimpleDBObjectBuilder.getItemAttributes(entity);
+            item.putAttributes(attrs);
+        } catch (SDBException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+    
+    public void delete(T entity) {
+        try {
+            Domain domain = getDomain();
+            ID id = entity.getId();
+            domain.deleteItem(id.toString());
         } catch (SDBException e) {
             throw new IllegalStateException(e);
         }
