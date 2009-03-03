@@ -21,7 +21,7 @@ import com.xerox.amazonws.sdb.SimpleDB;
  * 
  * @author Andriy Gusyev
  */
-public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extends Serializable> {
+public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extends Serializable> implements SimpleDBDAO<T, ID> {
 
     private static final String SELECT_COUNT_ALL = "select count(*) from %s";
 
@@ -58,7 +58,7 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
     public List<T> getAll() {
         List<T> list = new ArrayList<T>();
         String token = EMPTY_TOKEN;
-        if (token != null) {
+        while (token != null) {
             Result<T> result = getPortion(BATCH_SIZE, token.equals(EMPTY_TOKEN) ? null : token);
             token = result.getNextToken();
             list.addAll(result.getItems());
@@ -66,15 +66,6 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
         return list;
     }
 
-    /**
-     * Returns portion of entities from SimpleDB, if count isn't set, returns max 250 entities. If
-     * count greater then 250, returns max 250 entitties.
-     * 
-     * @param count - sets how much entities should be returned as maximim
-     * @param nextToken - token for retrieveing next portion, nextToken could be taken from
-     *        {@link Result} of previous portion, should be null for first portion.
-     * @return {@link Result} which contains list of items and token for next portion.
-     */
     @SuppressWarnings("unchecked")
     public Result<T> getPortion(Integer count, String nextToken) {
         if (count == null || count.equals(0) || count > BATCH_SIZE) {
@@ -107,11 +98,6 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
         }
     }
 
-    /**
-     * Returns number of items in domain
-     * 
-     * @return
-     */
     public Integer countRows() {
         try {
             Domain domain = getDomain();
@@ -129,12 +115,6 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
         }
     }
 
-    /**
-     * Returns number of items with condition
-     * 
-     * @param conditionQuery - part of the query after WHERE
-     * @return
-     */
     public Integer countRows(String conditionQuery) {
         try {
             Domain domain = getDomain();
