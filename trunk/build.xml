@@ -1,4 +1,4 @@
-<project name="Cogniance SimpleDB" default="build-jar" basedir=".">
+<project name="SimpleDB DAO" default="build-jar" basedir=".">
 
 	<property file="build.properties" />
 	
@@ -14,13 +14,13 @@
 	</target>
 	
 	<target name="build-jar" depends="build-java, create-sources">
-		<jar destfile="${build.dir}/cogniance-simpledb-${version}.jar" >
+		<jar destfile="${build.dir}/simpledb-dao-${version}.jar" >
 			<fileset dir="${build.dir}" />
 		</jar>
 	</target>
 	
 	<target name="create-sources">
-		<zip destfile="${build.dir}/cogniance-simpledb-${version}-src.zip">
+		<zip destfile="${build.dir}/simpledb-dao-${version}-src.zip">
 			<fileset dir="${src.java.dir}" />
 		</zip>
 	</target>
