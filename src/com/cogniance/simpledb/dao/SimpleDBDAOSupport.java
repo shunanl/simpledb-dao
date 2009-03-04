@@ -6,8 +6,11 @@ import java.util.List;
 
 import javax.persistence.Entity;
 
+import org.apache.log4j.Logger;
+
 import com.cogniance.simpledb.model.SimpleDBEntity;
 import com.cogniance.simpledb.util.SimpleDBObjectBuilder;
+import com.cogniance.simpledb.util.SimpleDBQueryBuilder;
 import com.xerox.amazonws.sdb.Domain;
 import com.xerox.amazonws.sdb.Item;
 import com.xerox.amazonws.sdb.ItemAttribute;
@@ -22,6 +25,8 @@ import com.xerox.amazonws.sdb.SimpleDB;
  * @author Andriy Gusyev
  */
 public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extends Serializable> implements SimpleDBDAO<T, ID> {
+    
+    Logger logger = Logger.getLogger(SimpleDBDAOSupport.class);
 
     private static final String SELECT_COUNT_ALL = "select count(*) from %s";
 
@@ -143,7 +148,9 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
     public Integer countRows(String conditionQuery) {
         try {
             Domain domain = getDomain();
+            conditionQuery = SimpleDBQueryBuilder.transformQuery(getEntityClass(), conditionQuery);
             String select = String.format(SELECT_COUNT_WHERE, domain.getName(), conditionQuery);
+            logger.info(String.format("Select query: %s", select));
             QueryWithAttributesResult result = domain.selectItems(select, null);
             for (List<ItemAttribute> list : result.getItems().values()) {
                 if (list.size() > 0) {
