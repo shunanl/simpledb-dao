@@ -27,6 +27,8 @@ import com.xerox.amazonws.sdb.SimpleDB;
 public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extends Serializable> implements SimpleDBDAO<T, ID> {
     
     Logger logger = Logger.getLogger(SimpleDBDAOSupport.class);
+    
+    private static final String SELECT = "select * from %s where %s limit %s";
 
     private static final String SELECT_COUNT_ALL = "select count(*) from %s";
 
@@ -61,25 +63,35 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
     }
 
     public List<T> getAll() {
+        return getAll(EMPTY_TOKEN);
+    }
+    
+    public List<T> getAll(String conditionQuery) {
         List<T> list = new ArrayList<T>();
         String token = EMPTY_TOKEN;
         while (token != null) {
-            Result<T> result = getPortion(BATCH_SIZE, token.equals(EMPTY_TOKEN) ? null : token);
+            Result<T> result = getPortion(conditionQuery, BATCH_SIZE, token.equals(EMPTY_TOKEN) ? null : token);
             token = result.getNextToken();
             list.addAll(result.getItems());
         }
         return list;
     }
 
-    @SuppressWarnings("unchecked")
     public Result<T> getPortion(Integer count, String nextToken) {
+        return getPortion(EMPTY_TOKEN, count, nextToken);
+    }
+    
+    @SuppressWarnings("unchecked")
+    public Result<T> getPortion(String conditionQuery, Integer count, String nextToken) {
         if (count == null || count.equals(0) || count > BATCH_SIZE) {
             count = BATCH_SIZE;
         }
         try {
             List<T> list = new ArrayList<T>();
             Domain domain = getDomain();
-            QueryWithAttributesResult result = domain.listItemsWithAttributes("", null, nextToken, count);
+            conditionQuery = SimpleDBQueryBuilder.transformQuery(getEntityClass(), conditionQuery);
+            QueryWithAttributesResult result = domain.selectItems(String.format(SELECT, domain.getName(),
+                    conditionQuery, count.toString()), nextToken);
             nextToken = result.getNextToken();
             for (List<ItemAttribute> attrs : result.getItems().values()) {
                 T obj = (T) SimpleDBObjectBuilder.buildObject(getEntityClass(), attrs);
@@ -150,7 +162,9 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
             Domain domain = getDomain();
             conditionQuery = SimpleDBQueryBuilder.transformQuery(getEntityClass(), conditionQuery);
             String select = String.format(SELECT_COUNT_WHERE, domain.getName(), conditionQuery);
-            logger.info(String.format("Select query: %s", select));
+            if (logger.isDebugEnabled()) {
+                logger.debug(String.format("Select query: %s", select));
+            }
             QueryWithAttributesResult result = domain.selectItems(select, null);
             for (List<ItemAttribute> list : result.getItems().values()) {
                 if (list.size() > 0) {

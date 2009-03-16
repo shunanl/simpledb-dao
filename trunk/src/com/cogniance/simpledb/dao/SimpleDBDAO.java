@@ -17,6 +17,14 @@ public interface SimpleDBDAO<T extends SimpleDBEntity<ID>, ID extends Serializab
      * @return list of entities
      */
     List<T> getAll();
+    
+    /**
+     * Returns all entities filtered by query
+     * 
+     * @param conditionQuery - part of the query after WHERE
+     * @return list of entities
+     */
+    List<T> getAll(String conditionQuery);
 
     /**
      * Returns portion of entities from SimpleDB, if count isn't set, returns max 250 entities. If
@@ -28,6 +36,17 @@ public interface SimpleDBDAO<T extends SimpleDBEntity<ID>, ID extends Serializab
      * @return {@link Result} which contains list of items and token for next portion.
      */
     Result<T> getPortion(Integer count, String nextToken);
+    
+    /**
+     * Returns portion of entities from SimpleDB, filtered by query.
+     * 
+     * @param conditionQuery - part of the query after WHERE
+     * @param count - sets how much entities should be returned as maximim
+     * @param nextToken - token for retrieveing next portion, nextToken could be taken from
+     *        {@link Result} of previous portion, should be null for first portion.
+     * @return {@link Result} which contains list of items and token for next portion.
+     */
+    Result<T> getPortion(String conditionQuery, Integer count, String nextToken);
 
     /**
      * Returns entity by it's id, if not found returns null.
