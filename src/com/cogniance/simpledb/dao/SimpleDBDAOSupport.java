@@ -29,6 +29,8 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
     Logger logger = Logger.getLogger(SimpleDBDAOSupport.class);
     
     private static final String SELECT = "select * from %s where %s limit %s";
+    
+    private static final String SELECT_NO_CONDITION = "select * from %s limit %s";
 
     private static final String SELECT_COUNT_ALL = "select count(*) from %s";
 
@@ -89,9 +91,15 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
         try {
             List<T> list = new ArrayList<T>();
             Domain domain = getDomain();
-            conditionQuery = SimpleDBQueryBuilder.transformQuery(getEntityClass(), conditionQuery);
-            QueryWithAttributesResult result = domain.selectItems(String.format(SELECT, domain.getName(),
-                    conditionQuery, count.toString()), nextToken);
+            QueryWithAttributesResult result = null;
+            if (EMPTY_TOKEN.equals(conditionQuery)) {
+                result = domain.selectItems(String.format(SELECT_NO_CONDITION, domain.getName(), count.toString()),
+                        nextToken);
+            } else {
+                conditionQuery = SimpleDBQueryBuilder.transformQuery(getEntityClass(), conditionQuery);
+                result = domain.selectItems(String.format(SELECT, domain.getName(), conditionQuery, count.toString()),
+                        nextToken);
+            }
             nextToken = result.getNextToken();
             for (List<ItemAttribute> attrs : result.getItems().values()) {
                 T obj = (T) SimpleDBObjectBuilder.buildObject(getEntityClass(), attrs);
