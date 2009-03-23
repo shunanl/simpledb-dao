@@ -2,10 +2,17 @@ package com.cogniance.simpledb.dao;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.persistence.Entity;
 
+import org.apache.commons.beanutils.Converter;
+import org.apache.commons.beanutils.converters.BooleanConverter;
+import org.apache.commons.beanutils.converters.IntegerConverter;
+import org.apache.commons.beanutils.converters.LongConverter;
+import org.apache.commons.beanutils.converters.StringConverter;
 import org.apache.log4j.Logger;
 
 import com.cogniance.simpledb.model.SimpleDBEntity;
@@ -40,13 +47,27 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
 
     private static final Integer BATCH_SIZE = 250;
 
-    private static SimpleDB sdb;
-
+    private SimpleDB sdb;
+    
+    private SimpleDBObjectBuilder objectBuilder;
+    
     protected abstract Class<T> getEntityClass();
 
     protected abstract String getAccessKey();
 
     protected abstract String getSecretKey();
+    
+    @SuppressWarnings("unchecked")
+    public SimpleDBDAOSupport() {
+        Map<Class, Converter> defaultConverters = new HashMap<Class, Converter>();
+        defaultConverters.put(Integer.class, new IntegerConverter());
+        defaultConverters.put(int.class, new IntegerConverter());
+        defaultConverters.put(Long.class, new LongConverter());
+        defaultConverters.put(long.class, new LongConverter());
+        defaultConverters.put(String.class, new StringConverter());
+        defaultConverters.put(Boolean.class, new BooleanConverter());
+        this.objectBuilder = new SimpleDBObjectBuilder(defaultConverters);
+    }
 
     @SuppressWarnings("unchecked")
     protected Domain getDomain() throws SDBException {
@@ -102,7 +123,7 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
             }
             nextToken = result.getNextToken();
             for (List<ItemAttribute> attrs : result.getItems().values()) {
-                T obj = (T) SimpleDBObjectBuilder.buildObject(getEntityClass(), attrs);
+                T obj = (T) objectBuilder.buildObject(getEntityClass(), attrs);
                 list.add(obj);
             }
             return new Result<T>(list, nextToken);
@@ -116,7 +137,7 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
         try {
             Domain domain = getDomain();
             Item item = domain.getItem(id.toString());
-            T obj = (T) SimpleDBObjectBuilder.buildObject(getEntityClass(), item.getAttributes());
+            T obj = (T) objectBuilder.buildObject(getEntityClass(), item.getAttributes());
             if (obj.getId() == null) {
                 return null;
             } else {
@@ -131,7 +152,7 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
         try {
             Domain domain = getDomain();
             Item item = domain.getItem(entity.getId().toString());
-            List<ItemAttribute> attrs = SimpleDBObjectBuilder.getItemAttributes(entity);
+            List<ItemAttribute> attrs = objectBuilder.getItemAttributes(entity);
             item.putAttributes(attrs);
         } catch (SDBException e) {
             throw new IllegalStateException(e);
@@ -184,6 +205,16 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
         } catch (SDBException e) {
             throw new IllegalStateException(e);
         }
+    }
+    
+    @SuppressWarnings("unchecked")
+    public void addConverter(Class clazz, Converter converter) {
+        objectBuilder.addConverter(clazz, converter);
+    }
+    
+    @SuppressWarnings("unchecked")
+    public void removeConverter(Class clazz) {
+        objectBuilder.removeConverter(clazz);
     }
 
     public static class Result<T> implements Serializable {
