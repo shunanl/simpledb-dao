@@ -170,38 +170,35 @@ public abstract class SimpleDBDAOSupport<T extends SimpleDBEntity<ID>, ID extend
     }
 
     public Integer countRows() {
-        try {
-            Domain domain = getDomain();
-            String select = String.format(SELECT_COUNT_ALL, domain.getName());
-            QueryWithAttributesResult result = domain.selectItems(select, null);
-            for (List<ItemAttribute> list : result.getItems().values()) {
-                if (list.size() > 0) {
-                    ItemAttribute attr = list.get(0);
-                    return Integer.parseInt(attr.getValue());
-                }
-            }
-            return 0;
-        } catch (SDBException e) {
-            throw new IllegalStateException(e);
-        }
+        return countRows(null);
     }
 
     public Integer countRows(String conditionQuery) {
         try {
             Domain domain = getDomain();
-            conditionQuery = SimpleDBQueryBuilder.transformQuery(getEntityClass(), conditionQuery);
-            String select = String.format(SELECT_COUNT_WHERE, domain.getName(), conditionQuery);
-            if (logger.isDebugEnabled()) {
-                logger.debug(String.format("Select query: %s", select));
+            String select = null;
+            if (conditionQuery != null) {
+                conditionQuery = SimpleDBQueryBuilder.transformQuery(getEntityClass(), conditionQuery);
+                select = String.format(SELECT_COUNT_WHERE, domain.getName(), conditionQuery);
+            } else {
+                select = String.format(SELECT_COUNT_ALL, domain.getName());
             }
-            QueryWithAttributesResult result = domain.selectItems(select, null);
-            for (List<ItemAttribute> list : result.getItems().values()) {
-                if (list.size() > 0) {
-                    ItemAttribute attr = list.get(0);
-                    return Integer.parseInt(attr.getValue());
+            String token = EMPTY_TOKEN;
+            Integer count = 0;
+            while (token != null) {
+                QueryWithAttributesResult result = domain.selectItems(select, token.equals(EMPTY_TOKEN) ? null : token);
+                if (logger.isDebugEnabled()) {
+                    logger.debug(String.format("Select query: %s", select));
+                }
+                token = result.getNextToken();
+                for (List<ItemAttribute> list : result.getItems().values()) {
+                    if (list.size() > 0) {
+                        ItemAttribute attr = list.get(0);
+                        count += Integer.parseInt(attr.getValue());
+                    }
                 }
             }
-            return 0;
+            return count;
         } catch (SDBException e) {
             throw new IllegalStateException(e);
         }
